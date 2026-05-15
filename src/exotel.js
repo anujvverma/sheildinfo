@@ -1,11 +1,9 @@
 const axios = require('axios');
 
-const {
-  EXOTEL_ACCOUNT_SID,
-  EXOTEL_API_KEY,
-  EXOTEL_API_TOKEN,
-  EXOTEL_SUBDOMAIN,
-} = process.env;
+const EXOTEL_ACCOUNT_SID = process.env.EXOTEL_ACCOUNT_SID || 'anujvvermahuf1';
+const EXOTEL_API_KEY     = process.env.EXOTEL_API_KEY     || '4f08f8a472b917e81e4f2fd39e741b7bd621eef676b04499';
+const EXOTEL_API_TOKEN   = process.env.EXOTEL_API_TOKEN   || 'd479c1b0fe955bcea97b1cad9aad0d779188a115cee81028';
+const EXOTEL_SUBDOMAIN   = process.env.EXOTEL_SUBDOMAIN   || 'api.exotel.com';
 
 // Base URL for Singapore region
 const BASE_URL = `https://${EXOTEL_API_KEY}:${EXOTEL_API_TOKEN}@${EXOTEL_SUBDOMAIN}/v1/Accounts/${EXOTEL_ACCOUNT_SID}`;

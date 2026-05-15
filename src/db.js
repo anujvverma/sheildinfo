@@ -1,12 +1,12 @@
 const { Pool } = require('pg');
 
-console.log('🔍 All env keys:', Object.keys(process.env).join(', '));
-const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.PGURL || process.env.POSTGRESQL_URL;
-console.log('🔌 DATABASE_URL set?', dbUrl ? `YES — ${dbUrl.substring(0, 40)}...` : 'NO — MISSING!');
+const dbUrl = process.env.DATABASE_URL
+  || 'postgresql://postgres:lL3sRzr4XRjGxoJq@db.yqirhxuitstamejwgbck.supabase.co:5432/postgres';
+console.log('🔌 Connecting to DB:', dbUrl.substring(0, 50) + '...');
 
 const pool = new Pool({
   connectionString: dbUrl,
-  ssl: dbUrl?.includes('supabase') ? { rejectUnauthorized: false } : false,
+  ssl: { rejectUnauthorized: false },
 });
 
 /**
