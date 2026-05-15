@@ -4,7 +4,7 @@ dns.setDefaultResultOrder('ipv4first');
 
 // Using Supabase connection pooler (IPv4, port 6543) to avoid IPv6 issues on Railway
 const dbUrl = process.env.DATABASE_URL
-  || 'postgresql://postgres.yqirhxuitstamejwgbck:lL3sRzr4XRjGxoJq@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres';
+  || 'postgresql://postgres.yqirhxuitstamejwgbck:lL3sRzr4XRjGxoJq@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
 console.log('🔌 Connecting to DB:', dbUrl.substring(0, 50) + '...');
 
 const pool = new Pool({
