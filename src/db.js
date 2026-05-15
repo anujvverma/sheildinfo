@@ -1,7 +1,8 @@
 const { Pool } = require('pg');
 
-const dbUrl = process.env.DATABASE_URL;
-console.log('🔌 DATABASE_URL set?', dbUrl ? `YES — ${dbUrl.substring(0, 30)}...` : 'NO — MISSING!');
+console.log('🔍 All env keys:', Object.keys(process.env).join(', '));
+const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.PGURL || process.env.POSTGRESQL_URL;
+console.log('🔌 DATABASE_URL set?', dbUrl ? `YES — ${dbUrl.substring(0, 40)}...` : 'NO — MISSING!');
 
 const pool = new Pool({
   connectionString: dbUrl,
