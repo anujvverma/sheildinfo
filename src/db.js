@@ -1,8 +1,11 @@
 const { Pool } = require('pg');
 
+const dbUrl = process.env.DATABASE_URL;
+console.log('🔌 DATABASE_URL set?', dbUrl ? `YES — ${dbUrl.substring(0, 30)}...` : 'NO — MISSING!');
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('supabase') ? { rejectUnauthorized: false } : false,
+  connectionString: dbUrl,
+  ssl: dbUrl?.includes('supabase') ? { rejectUnauthorized: false } : false,
 });
 
 /**
