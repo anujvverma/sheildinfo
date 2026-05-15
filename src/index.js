@@ -343,6 +343,7 @@ function normaliseNumber(num = '') {
 // ═══════════════════════════════════════════════════════════════
 
 const PORT = process.env.PORT || 3000;
+const APP_URL = process.env.APP_URL || 'https://sheildinfo-production.up.railway.app';
 
 initDB().then(() => {
   app.listen(PORT, () => {
@@ -350,8 +351,8 @@ initDB().then(() => {
 🔒 ShieldNumber backend running on port ${PORT}
 
 Webhook URLs to configure in Exotel:
-  Incoming Call : POST ${process.env.APP_URL}/webhook/call
-  Incoming SMS  : POST ${process.env.APP_URL}/webhook/sms
+  Incoming Call : POST ${APP_URL}/webhook/call
+  Incoming SMS  : POST ${APP_URL}/webhook/sms
 
 API endpoints:
   POST /api/register
