@@ -23,6 +23,7 @@ const {
 
 const {
   sendSMS,
+  connectCall,
   buildCallConnectXML,
   buildCallBlockXML,
 } = require('./exotel');
@@ -64,20 +65,23 @@ app.get('/webhook/call', async (req, res) => {
       return res.send(buildCallBlockXML());
     }
 
+    const callSid = req.query.CallSid;
     const inPhonebook = await isInPhonebook(user.id, callerNumber);
     if (inPhonebook) {
       console.log(`✅ ALLOWED — ${callerNumber} is in phonebook`);
       await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'phonebook');
-      res.set('Content-Type', 'text/xml');
-      return res.send(buildCallConnectXML(user.real_number, maskedNumber));
+      res.sendStatus(200);
+      await connectCall(callSid, user.real_number, maskedNumber);
+      return;
     }
 
     const inTempList = await isInTempWhitelist(user.id, callerNumber);
     if (inTempList) {
       console.log(`✅ ALLOWED — ${callerNumber} is on temp whitelist`);
       await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'temp_whitelist');
-      res.set('Content-Type', 'text/xml');
-      return res.send(buildCallConnectXML(user.real_number, maskedNumber));
+      res.sendStatus(200);
+      await connectCall(callSid, user.real_number, maskedNumber);
+      return;
     }
 
     console.log(`🚫 BLOCKED — ${callerNumber} is unknown`);

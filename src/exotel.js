@@ -28,11 +28,37 @@ async function sendSMS(to, from, message) {
 }
 
 /**
+ * Use Exotel REST API to bridge an incoming call to the real number
+ * This is the correct way to do dynamic call routing in Exotel
+ */
+async function connectCall(callSid, realNumber, maskedNumber) {
+  const fmt = n => n.replace(/^\+91/, '0');
+  try {
+    const res = await axios.post(
+      `https://${EXOTEL_API_KEY}:${EXOTEL_API_TOKEN}@${EXOTEL_SUBDOMAIN}/v1/Accounts/${EXOTEL_ACCOUNT_SID}/Calls/connect`,
+      null,
+      {
+        params: {
+          CallSid: callSid,
+          From: fmt(maskedNumber),
+          To: fmt(realNumber),
+          CallerId: fmt(maskedNumber),
+        }
+      }
+    );
+    console.log('✅ Exotel connect call success:', res.data);
+    return res.data;
+  } catch (err) {
+    console.error('Exotel connectCall error:', err.response?.data || err.message);
+    throw err;
+  }
+}
+
+/**
  * Forward a call from virtual number to real number
  * Returns ExoML (XML) that Exotel executes
  */
 function buildCallConnectXML(realNumber, callerId) {
-  // Exotel needs 0-prefixed 11-digit format e.g. 09909944526
   const fmt = n => n.replace(/^\+91/, '0');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -63,4 +89,4 @@ function buildCallWaitXML() {
 </Response>`;
 }
 
-module.exports = { sendSMS, buildCallConnectXML, buildCallBlockXML };
+module.exports = { sendSMS, connectCall, buildCallConnectXML, buildCallBlockXML };
