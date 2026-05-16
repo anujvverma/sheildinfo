@@ -368,6 +368,27 @@ app.get('/api/user', async (req, res) => {
   }
 });
 
+/**
+ * GET /exotel/connect-params
+ * Called by Exotel Connect applet to get the number to dial
+ * Returns the real number for the masked number being called
+ */
+app.get('/exotel/connect-params', async (req, res) => {
+  const maskedNumber = normaliseNumber(req.query.To || req.query.CallTo);
+  console.log('🔗 connect-params for masked:', maskedNumber);
+  try {
+    const user = await getUserByMaskedNumber(maskedNumber);
+    if (!user) return res.sendStatus(404);
+    // Exotel Connect dynamic params format
+    res.json({
+      Number: user.real_number.replace(/^\+91/, '0'),
+    });
+  } catch (err) {
+    console.error('connect-params error:', err);
+    res.sendStatus(500);
+  }
+});
+
 // Health check
 app.get('/health', (_, res) => res.json({ status: 'ok', app: 'ShieldNumber' }));
 
