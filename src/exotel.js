@@ -31,10 +31,10 @@ async function sendSMS(to, from, message) {
  * Forward a call from virtual number to real number
  * Returns ExoML (XML) that Exotel executes
  */
-function buildCallConnectXML(realNumber) {
+function buildCallConnectXML(realNumber, callerId) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial>
+  <Dial callerId="${callerId || ''}">
     <Number>${realNumber}</Number>
   </Dial>
 </Response>`;

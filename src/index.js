@@ -69,7 +69,7 @@ app.get('/webhook/call', async (req, res) => {
       console.log(`✅ ALLOWED — ${callerNumber} is in phonebook`);
       await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'phonebook');
       res.set('Content-Type', 'text/xml');
-      return res.send(buildCallConnectXML(user.real_number));
+      return res.send(buildCallConnectXML(user.real_number, maskedNumber));
     }
 
     const inTempList = await isInTempWhitelist(user.id, callerNumber);
@@ -77,7 +77,7 @@ app.get('/webhook/call', async (req, res) => {
       console.log(`✅ ALLOWED — ${callerNumber} is on temp whitelist`);
       await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'temp_whitelist');
       res.set('Content-Type', 'text/xml');
-      return res.send(buildCallConnectXML(user.real_number));
+      return res.send(buildCallConnectXML(user.real_number, maskedNumber));
     }
 
     console.log(`🚫 BLOCKED — ${callerNumber} is unknown`);
@@ -116,7 +116,7 @@ app.post('/webhook/call', async (req, res) => {
       console.log(`✅ ALLOWED — ${callerNumber} is in phonebook`);
       await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'phonebook');
       res.set('Content-Type', 'text/xml');
-      return res.send(buildCallConnectXML(user.real_number));
+      return res.send(buildCallConnectXML(user.real_number, maskedNumber));
     }
 
     // Check 2 — is caller on temp whitelist (e.g. delivery rider)?
@@ -125,7 +125,7 @@ app.post('/webhook/call', async (req, res) => {
       console.log(`✅ ALLOWED — ${callerNumber} is on temp whitelist`);
       await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'temp_whitelist');
       res.set('Content-Type', 'text/xml');
-      return res.send(buildCallConnectXML(user.real_number));
+      return res.send(buildCallConnectXML(user.real_number, maskedNumber));
     }
 
     // Neither — block the call
