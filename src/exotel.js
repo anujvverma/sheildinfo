@@ -32,10 +32,12 @@ async function sendSMS(to, from, message) {
  * Returns ExoML (XML) that Exotel executes
  */
 function buildCallConnectXML(realNumber, callerId) {
+  // Exotel needs 0-prefixed 11-digit format e.g. 09909944526
+  const fmt = n => n.replace(/^\+91/, '0');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerId || ''}">
-    <Number>${realNumber}</Number>
+  <Dial callerId="${fmt(callerId || '')}">
+    <Number>${fmt(realNumber)}</Number>
   </Dial>
 </Response>`;
 }
