@@ -32,6 +32,12 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+// Log every incoming request
+app.use((req, res, next) => {
+  console.log(`➡️  ${req.method} ${req.path} | body: ${JSON.stringify(req.body)} | query: ${JSON.stringify(req.query)}`);
+  next();
+});
+
 // ═══════════════════════════════════════════════════════════════
 //  EXOTEL WEBHOOKS  (Exotel calls these URLs automatically)
 // ═══════════════════════════════════════════════════════════════
@@ -44,6 +50,15 @@ app.use(bodyParser.json());
  * Set this URL in Exotel dashboard:
  *   POST https://yourapp.railway.app/webhook/call
  */
+// Handle both GET and POST from Exotel
+app.get('/webhook/call', (req, res) => {
+  const callerNumber = normaliseNumber(req.query.From || req.query.CallFrom);
+  const maskedNumber = normaliseNumber(req.query.To   || req.query.CallTo);
+  console.log(`📞 GET webhook | caller: ${callerNumber} → masked: ${maskedNumber}`);
+  res.set('Content-Type', 'text/xml');
+  return res.send(buildCallBlockXML());
+});
+
 app.post('/webhook/call', async (req, res) => {
   console.log('📞 Webhook hit! Full body:', JSON.stringify(req.body));
   console.log('📞 Headers:', JSON.stringify(req.headers));
