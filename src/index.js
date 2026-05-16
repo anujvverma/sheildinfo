@@ -45,6 +45,9 @@ app.use(bodyParser.json());
  *   POST https://yourapp.railway.app/webhook/call
  */
 app.post('/webhook/call', async (req, res) => {
+  console.log('📞 Webhook hit! Full body:', JSON.stringify(req.body));
+  console.log('📞 Headers:', JSON.stringify(req.headers));
+
   const callerNumber = normaliseNumber(req.body.From || req.body.CallFrom);
   const maskedNumber = normaliseNumber(req.body.To   || req.body.CallTo);
 
