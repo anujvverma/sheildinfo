@@ -50,13 +50,46 @@ app.use((req, res, next) => {
  * Set this URL in Exotel dashboard:
  *   POST https://yourapp.railway.app/webhook/call
  */
-// Handle both GET and POST from Exotel
-app.get('/webhook/call', (req, res) => {
+// Handle GET from Exotel (Passthru uses GET with query params)
+app.get('/webhook/call', async (req, res) => {
   const callerNumber = normaliseNumber(req.query.From || req.query.CallFrom);
   const maskedNumber = normaliseNumber(req.query.To   || req.query.CallTo);
   console.log(`📞 GET webhook | caller: ${callerNumber} → masked: ${maskedNumber}`);
-  res.set('Content-Type', 'text/xml');
-  return res.send(buildCallBlockXML());
+
+  try {
+    const user = await getUserByMaskedNumber(maskedNumber);
+    if (!user) {
+      console.log('❌ No user found for masked number — blocking');
+      res.set('Content-Type', 'text/xml');
+      return res.send(buildCallBlockXML());
+    }
+
+    const inPhonebook = await isInPhonebook(user.id, callerNumber);
+    if (inPhonebook) {
+      console.log(`✅ ALLOWED — ${callerNumber} is in phonebook`);
+      await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'phonebook');
+      res.set('Content-Type', 'text/xml');
+      return res.send(buildCallConnectXML(user.real_number));
+    }
+
+    const inTempList = await isInTempWhitelist(user.id, callerNumber);
+    if (inTempList) {
+      console.log(`✅ ALLOWED — ${callerNumber} is on temp whitelist`);
+      await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'temp_whitelist');
+      res.set('Content-Type', 'text/xml');
+      return res.send(buildCallConnectXML(user.real_number));
+    }
+
+    console.log(`🚫 BLOCKED — ${callerNumber} is unknown`);
+    await logCall(user.id, callerNumber, maskedNumber, 'blocked', 'unknown');
+    res.set('Content-Type', 'text/xml');
+    return res.send(buildCallBlockXML());
+
+  } catch (err) {
+    console.error('GET Webhook /call error:', err);
+    res.set('Content-Type', 'text/xml');
+    return res.send(buildCallBlockXML());
+  }
 });
 
 app.post('/webhook/call', async (req, res) => {
