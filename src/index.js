@@ -65,29 +65,23 @@ app.get('/webhook/call', async (req, res) => {
       return res.send(buildCallBlockXML());
     }
 
-    const callSid = req.query.CallSid;
     const inPhonebook = await isInPhonebook(user.id, callerNumber);
     if (inPhonebook) {
       console.log(`✅ ALLOWED — ${callerNumber} is in phonebook`);
       await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'phonebook');
-      res.sendStatus(200);
-      await connectCall(callSid, user.real_number, maskedNumber);
-      return;
+      return res.sendStatus(200); // Exotel runs "Connect" applet next
     }
 
     const inTempList = await isInTempWhitelist(user.id, callerNumber);
     if (inTempList) {
       console.log(`✅ ALLOWED — ${callerNumber} is on temp whitelist`);
       await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'temp_whitelist');
-      res.sendStatus(200);
-      await connectCall(callSid, user.real_number, maskedNumber);
-      return;
+      return res.sendStatus(200); // Exotel runs "Connect" applet next
     }
 
     console.log(`🚫 BLOCKED — ${callerNumber} is unknown`);
     await logCall(user.id, callerNumber, maskedNumber, 'blocked', 'unknown');
-    res.set('Content-Type', 'text/xml');
-    return res.send(buildCallBlockXML());
+    return res.sendStatus(403); // Exotel runs "Hangup" applet next
 
   } catch (err) {
     console.error('GET Webhook /call error:', err);
