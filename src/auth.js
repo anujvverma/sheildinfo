@@ -18,7 +18,7 @@ function verifyToken(token) {
 // Middleware — protects API routes
 function requireAuth(req, res, next) {
   // Skip auth for webhooks, health, register, and auth endpoints
-  const publicPaths = ['/webhook/', '/health', '/api/register', '/api/auth/', '/exotel/'];
+  const publicPaths = ['/webhook/', '/health', '/api/register', '/api/auth/', '/exotel/', '/api/admin/'];
   if (publicPaths.some(p => req.path.startsWith(p))) return next();
 
   const authHeader = req.headers['authorization'];
