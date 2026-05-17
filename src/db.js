@@ -11,16 +11,33 @@ console.log('🔌 Connecting to DB:', dbUrl.substring(0, 50) + '...');
 const pool = new Pool({
   connectionString: dbUrl,
   ssl: { rejectUnauthorized: false },
-  connectionTimeoutMillis: 5000,
-  idleTimeoutMillis: 10000,
-  max: 5,
+  connectionTimeoutMillis: 8000,
+  idleTimeoutMillis: 30000,
+  query_timeout: 8000,
+  max: 3,
 });
+
+pool.on('error', (err) => console.error('Pool error:', err.message));
+pool.on('connect', () => console.log('✅ New DB connection established'));
+
+// Query wrapper with timeout
+async function query(text, params) {
+  const start = Date.now();
+  try {
+    const res = await pool.query(text, params);
+    console.log(`📊 Query OK (${Date.now()-start}ms):`, text.substring(0, 50));
+    return res;
+  } catch (err) {
+    console.error(`❌ Query FAILED (${Date.now()-start}ms):`, err.message);
+    throw err;
+  }
+}
 
 /**
  * Create all tables on first run
  */
 async function initDB() {
-  await pool.query(`
+  await query(`
     -- Users table
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -92,7 +109,7 @@ async function initDB() {
 // ─── USER QUERIES ──────────────────────────────────────────
 
 async function getUserByMaskedNumber(maskedNumber) {
-  const res = await pool.query(
+  const res = await query(
     'SELECT * FROM users WHERE masked_number = $1 AND active = true',
     [maskedNumber]
   );
@@ -100,7 +117,7 @@ async function getUserByMaskedNumber(maskedNumber) {
 }
 
 async function getUserByRealNumber(realNumber) {
-  const res = await pool.query(
+  const res = await query(
     'SELECT * FROM users WHERE real_number = $1',
     [realNumber]
   );
@@ -108,7 +125,7 @@ async function getUserByRealNumber(realNumber) {
 }
 
 async function createUser(realNumber, maskedNumber) {
-  const res = await pool.query(
+  const res = await query(
     `INSERT INTO users (real_number, masked_number, plan, expires_at)
      VALUES ($1, $2, 'trial', NOW() + INTERVAL '7 days')
      RETURNING *`,
@@ -120,7 +137,7 @@ async function createUser(realNumber, maskedNumber) {
 // ─── PHONEBOOK QUERIES ─────────────────────────────────────
 
 async function isInPhonebook(userId, callerNumber) {
-  const res = await pool.query(
+  const res = await query(
     'SELECT id FROM phonebook WHERE user_id = $1 AND contact_number = $2',
     [userId, callerNumber]
   );
@@ -128,7 +145,7 @@ async function isInPhonebook(userId, callerNumber) {
 }
 
 async function addToPhonebook(userId, contactNumber, contactName = '') {
-  await pool.query(
+  await query(
     `INSERT INTO phonebook (user_id, contact_number, contact_name)
      VALUES ($1, $2, $3) ON CONFLICT (user_id, contact_number) DO NOTHING`,
     [userId, contactNumber, contactName]
@@ -136,7 +153,7 @@ async function addToPhonebook(userId, contactNumber, contactName = '') {
 }
 
 async function getPhonebook(userId) {
-  const res = await pool.query(
+  const res = await query(
     'SELECT * FROM phonebook WHERE user_id = $1 ORDER BY contact_name',
     [userId]
   );
@@ -153,7 +170,7 @@ async function bulkAddPhonebook(userId, contacts) {
 // ─── TEMP WHITELIST QUERIES ────────────────────────────────
 
 async function isInTempWhitelist(userId, callerNumber) {
-  const res = await pool.query(
+  const res = await query(
     `SELECT id FROM temp_whitelist
      WHERE user_id = $1
        AND caller_number = $2
@@ -164,7 +181,7 @@ async function isInTempWhitelist(userId, callerNumber) {
 }
 
 async function addTempWhitelist(userId, callerNumber, label, hoursValid = 2) {
-  await pool.query(
+  await query(
     `INSERT INTO temp_whitelist (user_id, caller_number, label, expires_at)
      VALUES ($1, $2, $3, NOW() + INTERVAL '${hoursValid} hours')`,
     [userId, callerNumber, label]
@@ -172,7 +189,7 @@ async function addTempWhitelist(userId, callerNumber, label, hoursValid = 2) {
 }
 
 async function getTempWhitelist(userId) {
-  const res = await pool.query(
+  const res = await query(
     `SELECT * FROM temp_whitelist
      WHERE user_id = $1 AND expires_at > NOW()
      ORDER BY expires_at`,
@@ -184,7 +201,7 @@ async function getTempWhitelist(userId) {
 // ─── LOG QUERIES ───────────────────────────────────────────
 
 async function logCall(userId, callerNumber, maskedNumber, action, reason) {
-  await pool.query(
+  await query(
     `INSERT INTO call_log (user_id, caller_number, masked_number, action, reason)
      VALUES ($1, $2, $3, $4, $5)`,
     [userId, callerNumber, maskedNumber, action, reason]
@@ -192,7 +209,7 @@ async function logCall(userId, callerNumber, maskedNumber, action, reason) {
 }
 
 async function logSMS(userId, fromNumber, maskedNumber, message, direction) {
-  await pool.query(
+  await query(
     `INSERT INTO sms_log (user_id, from_number, masked_number, message, direction)
      VALUES ($1, $2, $3, $4, $5)`,
     [userId, fromNumber, maskedNumber, message, direction]
@@ -200,7 +217,7 @@ async function logSMS(userId, fromNumber, maskedNumber, message, direction) {
 }
 
 async function getCallLog(userId, limit = 20) {
-  const res = await pool.query(
+  const res = await query(
     'SELECT * FROM call_log WHERE user_id = $1 ORDER BY called_at DESC LIMIT $2',
     [userId, limit]
   );
@@ -208,7 +225,7 @@ async function getCallLog(userId, limit = 20) {
 }
 
 async function getSMSLog(userId, limit = 20) {
-  const res = await pool.query(
+  const res = await query(
     'SELECT * FROM sms_log WHERE user_id = $1 ORDER BY sent_at DESC LIMIT $2',
     [userId, limit]
   );
