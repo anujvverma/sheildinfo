@@ -134,12 +134,12 @@ async function getUserByRealNumber(realNumber) {
   return res.rows[0] || null;
 }
 
-async function createUser(realNumber, maskedNumber) {
+async function createUser(realNumber, maskedNumber, plan = 'pro', trialDays = 15) {
   const res = await query(
     `INSERT INTO users (real_number, masked_number, plan, expires_at)
-     VALUES ($1, $2, 'trial', NOW() + INTERVAL '7 days')
+     VALUES ($1, $2, $3, NOW() + INTERVAL '${trialDays} days')
      RETURNING *`,
-    [realNumber, maskedNumber]
+    [realNumber, maskedNumber, plan]
   );
   return res.rows[0];
 }

@@ -48,22 +48,27 @@ function isTrialExpired(user) {
 }
 
 function isPlanExpired(user) {
-  if (user.plan === 'trial') return isTrialExpired(user);
+  // Trial expiry = downgrade to basic (not block)
+  // Paid plans expiry = downgrade to basic too (grace period)
   return new Date() > new Date(user.expires_at);
 }
 
+// Get effective plan (expired users get basic features)
+function getEffectivePlan(user) {
+  if (isPlanExpired(user)) return 'basic';
+  return user.plan;
+}
+
 function canUseDeliveryMode(user) {
-  if (isPlanExpired(user)) return false;
-  return getPlan(user.plan).deliveryMode;
+  return getPlan(getEffectivePlan(user)).deliveryMode;
 }
 
 function canUseSmsForwarding(user) {
-  if (isPlanExpired(user)) return false;
-  return getPlan(user.plan).smsForwarding;
+  return getPlan(getEffectivePlan(user)).smsForwarding;
 }
 
 function getLogDays(user) {
-  return getPlan(user.plan).logDays;
+  return getPlan(getEffectivePlan(user)).logDays;
 }
 
-module.exports = { PLANS, getPlan, isTrialExpired, isPlanExpired, canUseDeliveryMode, canUseSmsForwarding, getLogDays };
+module.exports = { PLANS, getPlan, isTrialExpired, isPlanExpired, getEffectivePlan, canUseDeliveryMode, canUseSmsForwarding, getLogDays };

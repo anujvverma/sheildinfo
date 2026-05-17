@@ -269,9 +269,12 @@ app.post('/api/register', async (req, res) => {
       return res.json({ user: existing, message: 'Already registered' });
     }
 
+    // New users get Pro trial for 15 days
     const user = await createUser(
       normaliseNumber(realNumber),
-      normaliseNumber(maskedNumber)
+      normaliseNumber(maskedNumber),
+      'pro',
+      15
     );
 
     // Send welcome SMS (non-fatal — don't block registration if SMS fails)
@@ -564,6 +567,32 @@ app.post('/api/fcm-token', async (req, res) => {
   } catch (err) {
     console.error('fcm-token error:', err);
     res.status(500).json({ error: 'Failed to save token' });
+  }
+});
+
+/**
+ * POST /api/admin/upgrade
+ * Admin endpoint to manually upgrade a user's plan
+ * Body: { realNumber, plan, days }
+ */
+app.post('/api/admin/upgrade', async (req, res) => {
+  const { realNumber, plan = 'pro', days = 30, adminKey } = req.body;
+  // Simple admin key check
+  if (adminKey !== 'shieldinfo-admin-nikisha-2026') {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  try {
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { pool } = require('./db');
+    await pool.query(
+      `UPDATE users SET plan=$1, active=true, expires_at=NOW() + INTERVAL '${days} days' WHERE id=$2`,
+      [plan, user.id]
+    );
+    console.log(`✅ Admin upgraded ${realNumber} to ${plan} for ${days} days`);
+    res.json({ message: `${realNumber} upgraded to ${plan} for ${days} days` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
