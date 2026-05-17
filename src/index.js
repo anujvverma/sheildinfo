@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const { sendPushNotification } = require('./notifications');
+const { isPlanExpired, canUseDeliveryMode, canUseSmsForwarding, getLogDays, getPlan } = require('./plans');
 
 const {
   initDB,
@@ -383,11 +384,17 @@ app.get('/api/logs', async (req, res) => {
   try {
     const user = await getUserByRealNumber(normaliseNumber(realNumber));
     if (!user) return res.status(404).json({ error: 'User not found' });
+    const logDays = getLogDays(user);
     const [calls, messages] = await Promise.all([
-      getCallLog(user.id),
-      getSMSLog(user.id)
+      getCallLog(user.id, 50),
+      getSMSLog(user.id, 50)
     ]);
-    res.json({ calls, messages });
+    // Filter by plan log days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - logDays);
+    const filteredCalls = calls.filter(c => new Date(c.called_at) > cutoff);
+    const filteredMessages = messages.filter(m => new Date(m.sent_at) > cutoff);
+    res.json({ calls: filteredCalls, messages: filteredMessages, planLogDays: logDays });
   } catch (err) {
     res.status(500).json({ error: 'Failed to get logs' });
   }
@@ -402,11 +409,21 @@ app.get('/api/user', async (req, res) => {
   try {
     const user = await getUserByRealNumber(normaliseNumber(realNumber));
     if (!user) return res.status(404).json({ error: 'User not found' });
+    const planExpired = isPlanExpired(user);
+    const planDetails = getPlan(user.plan);
     res.json({
       maskedNumber: user.masked_number,
       plan: user.plan,
-      active: user.active,
-      expiresAt: user.expires_at
+      planName: planDetails.name,
+      active: user.active && !planExpired,
+      expired: planExpired,
+      expiresAt: user.expires_at,
+      features: {
+        deliveryMode: canUseDeliveryMode(user),
+        smsForwarding: canUseSmsForwarding(user),
+        logDays: getLogDays(user),
+        maskedNumbers: planDetails.maskedNumbers,
+      }
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to get user' });
@@ -444,6 +461,14 @@ app.post('/api/delivery-mode', async (req, res) => {
   try {
     const user = await getUserByRealNumber(normaliseNumber(realNumber));
     if (!user) return res.status(404).json({ error: 'User not found' });
+    // Plan check
+    if (!canUseDeliveryMode(user)) {
+      return res.status(403).json({ 
+        error: 'Delivery Mode requires Pro or Family plan',
+        upgrade: true,
+        currentPlan: user.plan
+      });
+    }
     const openUntil = await enableDeliveryMode(user.id, hours);
     console.log(`🚚 Delivery Mode ON for ${realNumber} until ${openUntil}`);
     res.json({ message: `Delivery Mode active for ${hours} hour(s)`, openUntil });
