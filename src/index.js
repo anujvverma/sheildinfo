@@ -19,8 +19,9 @@ const {
   bulkAddPhonebook,
   getCallLog,
   getSMSLog,
-  logCall,
-  logSMS,
+  logCall, logSMS,
+  saveFcmToken, getFcmToken,
+  enableDeliveryMode, disableDeliveryMode, isDeliveryModeActive,
 } = require('./db');
 
 const {
@@ -67,6 +68,14 @@ app.get('/webhook/call', async (req, res) => {
       console.log('❌ No user found for masked number — blocking');
       res.set('Content-Type', 'text/xml');
       return res.send(buildCallBlockXML());
+    }
+
+    // Check 0 — is Delivery Mode active? (allow everyone)
+    const deliveryUntil = await isDeliveryModeActive(user.id);
+    if (deliveryUntil) {
+      console.log(`🚚 DELIVERY MODE — allowing ${callerNumber}`);
+      await logCall(user.id, callerNumber, maskedNumber, 'allowed', 'delivery_mode');
+      return res.sendStatus(200);
     }
 
     const inPhonebook = await isInPhonebook(user.id, callerNumber);
@@ -422,6 +431,58 @@ app.get('/exotel/connect-params', async (req, res) => {
   } catch (err) {
     console.error('connect-params error:', err);
     res.sendStatus(500);
+  }
+});
+
+/**
+ * POST /api/delivery-mode
+ * Enable delivery mode for X hours — allow ALL callers
+ * Body: { realNumber, hours }
+ */
+app.post('/api/delivery-mode', async (req, res) => {
+  const { realNumber, hours = 1 } = req.body;
+  try {
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const openUntil = await enableDeliveryMode(user.id, hours);
+    console.log(`🚚 Delivery Mode ON for ${realNumber} until ${openUntil}`);
+    res.json({ message: `Delivery Mode active for ${hours} hour(s)`, openUntil });
+  } catch (err) {
+    console.error('delivery-mode error:', err);
+    res.status(500).json({ error: 'Failed to enable delivery mode' });
+  }
+});
+
+/**
+ * POST /api/delivery-mode/off
+ * Disable delivery mode immediately
+ */
+app.post('/api/delivery-mode/off', async (req, res) => {
+  const { realNumber } = req.body;
+  try {
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    await disableDeliveryMode(user.id);
+    console.log(`🛡️ Delivery Mode OFF for ${realNumber}`);
+    res.json({ message: 'Shield restored — delivery mode disabled' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to disable delivery mode' });
+  }
+});
+
+/**
+ * GET /api/delivery-mode?realNumber=+91XXXXXXXXXX
+ * Check if delivery mode is active
+ */
+app.get('/api/delivery-mode', async (req, res) => {
+  const { realNumber } = req.query;
+  try {
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const openUntil = await isDeliveryModeActive(user.id);
+    res.json({ active: !!openUntil, openUntil: openUntil || null });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to check delivery mode' });
   }
 });
 

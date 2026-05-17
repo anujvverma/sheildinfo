@@ -46,7 +46,8 @@ async function initDB() {
       plan VARCHAR(20) DEFAULT 'trial',          -- trial | basic | pro | family
       active BOOLEAN DEFAULT true,
       created_at TIMESTAMP DEFAULT NOW(),
-      expires_at TIMESTAMP DEFAULT NOW() + INTERVAL '7 days'
+      expires_at TIMESTAMP DEFAULT NOW() + INTERVAL '7 days',
+      open_until TIMESTAMP DEFAULT NULL   -- Delivery Mode: allow all until this time
     );
 
     -- Phonebook: numbers allowed to call through
@@ -241,6 +242,32 @@ async function getSMSLog(userId, limit = 20) {
   return res.rows;
 }
 
+// ─── DELIVERY MODE QUERIES ────────────────────────────
+
+async function enableDeliveryMode(userId, hours) {
+  const res = await query(
+    `UPDATE users SET open_until = NOW() + INTERVAL '${hours} hours'
+     WHERE id = $1 RETURNING open_until`,
+    [userId]
+  );
+  return res.rows[0]?.open_until;
+}
+
+async function disableDeliveryMode(userId) {
+  await query(
+    'UPDATE users SET open_until = NULL WHERE id = $1',
+    [userId]
+  );
+}
+
+async function isDeliveryModeActive(userId) {
+  const res = await query(
+    'SELECT open_until FROM users WHERE id = $1 AND open_until > NOW()',
+    [userId]
+  );
+  return res.rows.length > 0 ? res.rows[0].open_until : null;
+}
+
 // ─── FCM TOKEN QUERIES ────────────────────────────────
 
 async function saveFcmToken(userId, token) {
@@ -265,5 +292,5 @@ module.exports = {
   getUserByMaskedNumber, getUserByRealNumber, createUser,
   isInPhonebook, addToPhonebook, getPhonebook, bulkAddPhonebook,
   isInTempWhitelist, addTempWhitelist, getTempWhitelist,
-  logCall, logSMS, getCallLog, getSMSLog, saveFcmToken, getFcmToken,
+  logCall, logSMS, getCallLog, getSMSLog, saveFcmToken, getFcmToken, enableDeliveryMode, disableDeliveryMode, isDeliveryModeActive,
 };
