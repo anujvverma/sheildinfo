@@ -26,6 +26,7 @@ const {
   connectCall,
   buildCallConnectXML,
   buildCallBlockXML,
+  addToExotelAddressBook,
 } = require('./exotel');
 
 const app = express();
@@ -284,7 +285,10 @@ app.post('/api/phonebook/add', async (req, res) => {
   try {
     const user = await getUserByRealNumber(normaliseNumber(realNumber));
     if (!user) return res.status(404).json({ error: 'User not found' });
-    await addToPhonebook(user.id, normaliseNumber(contactNumber), contactName);
+    const normalisedContact = normaliseNumber(contactNumber);
+    await addToPhonebook(user.id, normalisedContact, contactName);
+    // Auto-sync to Exotel Address Book (needed for trial accounts)
+    addToExotelAddressBook(normalisedContact, contactName).catch(() => {});
     res.json({ message: `✅ ${contactName || contactNumber} added to phonebook` });
   } catch (err) {
     res.status(500).json({ error: 'Failed to add to phonebook' });
@@ -308,6 +312,8 @@ app.post('/api/phonebook/bulk', async (req, res) => {
     }));
 
     await bulkAddPhonebook(user.id, normalised);
+    // Auto-sync all to Exotel Address Book
+    normalised.forEach(c => addToExotelAddressBook(c.number, c.name).catch(() => {}));
     res.json({ message: `✅ ${contacts.length} contacts synced` });
   } catch (err) {
     res.status(500).json({ error: 'Failed to sync phonebook' });

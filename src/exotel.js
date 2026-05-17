@@ -89,4 +89,29 @@ function buildCallWaitXML() {
 </Response>`;
 }
 
-module.exports = { sendSMS, connectCall, buildCallConnectXML, buildCallBlockXML };
+/**
+ * Add a contact to Exotel Address Book
+ * Required for trial accounts — only address book numbers can call through
+ */
+async function addToExotelAddressBook(phoneNumber, name = '') {
+  try {
+    const fmt = n => n.replace(/^\+91/, '0');
+    const res = await axios.post(
+      `https://${EXOTEL_API_KEY}:${EXOTEL_API_TOKEN}@${EXOTEL_SUBDOMAIN}/v1/Accounts/${EXOTEL_ACCOUNT_SID}/Contacts`,
+      null,
+      {
+        params: {
+          PhoneNumber: fmt(phoneNumber),
+          Name: name || phoneNumber,
+        }
+      }
+    );
+    console.log(`✅ Added ${phoneNumber} to Exotel Address Book`);
+    return res.data;
+  } catch (err) {
+    // Don't throw — Exotel address book sync is non-critical
+    console.warn(`⚠️ Exotel address book sync failed for ${phoneNumber}:`, err.response?.data || err.message);
+  }
+}
+
+module.exports = { sendSMS, connectCall, buildCallConnectXML, buildCallBlockXML, addToExotelAddressBook };
