@@ -2,9 +2,10 @@ const { Pool } = require('pg');
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 
-// Using Supabase connection pooler (IPv4, port 6543) to avoid IPv6 issues on Railway
-const dbUrl = process.env.DATABASE_URL
-  || 'postgresql://postgres.yqirhxuitstamejwgbck:lL3sRzr4XRjGxoJq@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres';
+// Supabase session pooler (port 5432) — supports prepared statements unlike transaction pooler (6543)
+const dbUrl = (process.env.DATABASE_URL
+  || 'postgresql://postgres.yqirhxuitstamejwgbck:lL3sRzr4XRjGxoJq@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres')
+  .replace(':6543/', ':5432/');
 console.log('🔌 Connecting to DB:', dbUrl.substring(0, 50) + '...');
 
 const pool = new Pool({
