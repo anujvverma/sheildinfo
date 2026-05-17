@@ -457,3 +457,132 @@ API endpoints:
     `);
   });
 });
+
+
+// ═══════════════════════════════════════════════════════════════
+//  PAYMENTS (Razorpay)
+// ═══════════════════════════════════════════════════════════════
+
+const Razorpay = require('razorpay');
+const crypto  = require('crypto');
+
+const razorpay = new Razorpay({
+  key_id:     process.env.RAZORPAY_KEY_ID     || 'your_razorpay_key_id',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'your_razorpay_secret',
+});
+
+const PLANS = {
+  basic:  { amount: 9900,  label: 'Basic',  months: 1 },
+  pro:    { amount: 19900, label: 'Pro',     months: 1 },
+  family: { amount: 39900, label: 'Family',  months: 1 },
+};
+
+/**
+ * POST /api/payment/create-order
+ * Creates a Razorpay order for the selected plan
+ * Body: { realNumber, plan }
+ */
+app.post('/api/payment/create-order', async (req, res) => {
+  const { realNumber, plan } = req.body;
+  const planData = PLANS[plan];
+  if (!planData) return res.status(400).json({ error: 'Invalid plan' });
+
+  try {
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const order = await razorpay.orders.create({
+      amount:   planData.amount,
+      currency: 'INR',
+      receipt:  `shieldinfo_${user.id}_${Date.now()}`,
+      notes:    { userId: user.id, plan, realNumber },
+    });
+
+    // Save pending payment to DB
+    const { pool } = require('./db');
+    await pool.query(
+      `INSERT INTO payments (user_id, razorpay_order_id, amount, plan, status)
+       VALUES ($1, $2, $3, $4, 'pending')`,
+      [user.id, order.id, planData.amount, plan]
+    );
+
+    res.json({
+      orderId:  order.id,
+      amount:   order.amount,
+      currency: order.currency,
+      plan,
+      planLabel: planData.label,
+    });
+  } catch (err) {
+    console.error('create-order error:', err);
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
+
+/**
+ * POST /api/payment/verify
+ * Verifies Razorpay payment signature and activates plan
+ * Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature, realNumber, plan }
+ */
+app.post('/api/payment/verify', async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, realNumber, plan } = req.body;
+
+  try {
+    // Verify signature
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const expectedSig = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'your_razorpay_secret')
+      .update(body)
+      .digest('hex');
+
+    if (expectedSig !== razorpay_signature) {
+      return res.status(400).json({ error: 'Invalid payment signature' });
+    }
+
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const { pool } = require('./db');
+
+    // Update payment record
+    await pool.query(
+      `UPDATE payments SET razorpay_payment_id=$1, status='paid'
+       WHERE razorpay_order_id=$2`,
+      [razorpay_payment_id, razorpay_order_id]
+    );
+
+    // Activate plan — extend expiry by 30 days
+    await pool.query(
+      `UPDATE users SET plan=$1, active=true,
+       expires_at = NOW() + INTERVAL '30 days'
+       WHERE id=$2`,
+      [plan, user.id]
+    );
+
+    console.log(`✅ Payment verified — ${realNumber} upgraded to ${plan}`);
+    res.json({ success: true, plan, message: `${plan} plan activated!` });
+
+  } catch (err) {
+    console.error('verify payment error:', err);
+    res.status(500).json({ error: 'Payment verification failed' });
+  }
+});
+
+/**
+ * GET /api/payment/history?realNumber=+91XXXXXXXXXX
+ */
+app.get('/api/payment/history', async (req, res) => {
+  const { realNumber } = req.query;
+  try {
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { pool } = require('./db');
+    const result = await pool.query(
+      `SELECT * FROM payments WHERE user_id=$1 ORDER BY created_at DESC LIMIT 10`,
+      [user.id]
+    );
+    res.json({ payments: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to get payment history' });
+  }
+});
