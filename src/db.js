@@ -91,6 +91,15 @@ async function initDB() {
       sent_at TIMESTAMP DEFAULT NOW()
     );
 
+    -- FCM tokens for push notifications
+    CREATE TABLE IF NOT EXISTS fcm_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id)
+    );
+
     -- Payments
     CREATE TABLE IF NOT EXISTS payments (
       id SERIAL PRIMARY KEY,
@@ -232,10 +241,29 @@ async function getSMSLog(userId, limit = 20) {
   return res.rows;
 }
 
+// ─── FCM TOKEN QUERIES ────────────────────────────────
+
+async function saveFcmToken(userId, token) {
+  await query(
+    `INSERT INTO fcm_tokens (user_id, token, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (user_id) DO UPDATE SET token=$2, updated_at=NOW()`,
+    [userId, token]
+  );
+}
+
+async function getFcmToken(userId) {
+  const res = await query(
+    'SELECT token FROM fcm_tokens WHERE user_id=$1',
+    [userId]
+  );
+  return res.rows[0]?.token || null;
+}
+
 module.exports = {
   initDB, pool,
   getUserByMaskedNumber, getUserByRealNumber, createUser,
   isInPhonebook, addToPhonebook, getPhonebook, bulkAddPhonebook,
   isInTempWhitelist, addTempWhitelist, getTempWhitelist,
-  logCall, logSMS, getCallLog, getSMSLog,
+  logCall, logSMS, getCallLog, getSMSLog, saveFcmToken, getFcmToken,
 };

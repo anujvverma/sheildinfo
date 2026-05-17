@@ -3,6 +3,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
+const { sendPushNotification } = require('./notifications');
+
 const {
   initDB,
   getUserByMaskedNumber,
@@ -83,6 +85,15 @@ app.get('/webhook/call', async (req, res) => {
 
     console.log(`🚫 BLOCKED — ${callerNumber} is unknown`);
     await logCall(user.id, callerNumber, maskedNumber, 'blocked', 'unknown');
+    // Send push notification
+    const fcmToken = await getFcmToken(user.id).catch(() => null);
+    if (fcmToken) {
+      sendPushNotification(fcmToken,
+        'Call Blocked 🛡️',
+        `Unknown caller ${callerNumber} was blocked`,
+        { type: 'blocked_call', callerNumber }
+      ).catch(() => {});
+    }
     return res.sendStatus(403); // Exotel runs "Hangup" applet next
 
   } catch (err) {
@@ -327,7 +338,7 @@ app.delete('/api/phonebook/remove', async (req, res) => {
   try {
     const user = await getUserByRealNumber(normaliseNumber(realNumber));
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const { pool } = require('./db');
+    
     const normalisedContact = normaliseNumber(contactNumber);
     await pool.query(
       'DELETE FROM phonebook WHERE user_id = $1 AND contact_number = $2',
@@ -411,6 +422,24 @@ app.get('/exotel/connect-params', async (req, res) => {
   } catch (err) {
     console.error('connect-params error:', err);
     res.sendStatus(500);
+  }
+});
+
+/**
+ * POST /api/fcm-token
+ * Register device FCM token for push notifications
+ * Body: { realNumber, fcmToken }
+ */
+app.post('/api/fcm-token', async (req, res) => {
+  const { realNumber, fcmToken } = req.body;
+  try {
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    await saveFcmToken(user.id, fcmToken);
+    res.json({ message: 'FCM token saved' });
+  } catch (err) {
+    console.error('fcm-token error:', err);
+    res.status(500).json({ error: 'Failed to save token' });
   }
 });
 
@@ -503,7 +532,7 @@ app.post('/api/payment/create-order', async (req, res) => {
     });
 
     // Save pending payment to DB
-    const { pool } = require('./db');
+    
     await pool.query(
       `INSERT INTO payments (user_id, razorpay_order_id, amount, plan, status)
        VALUES ($1, $2, $3, $4, 'pending')`,
@@ -546,7 +575,7 @@ app.post('/api/payment/verify', async (req, res) => {
     const user = await getUserByRealNumber(normaliseNumber(realNumber));
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const { pool } = require('./db');
+    
 
     // Update payment record
     await pool.query(
@@ -580,7 +609,7 @@ app.get('/api/payment/history', async (req, res) => {
   try {
     const user = await getUserByRealNumber(normaliseNumber(realNumber));
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const { pool } = require('./db');
+    
     const result = await pool.query(
       `SELECT * FROM payments WHERE user_id=$1 ORDER BY created_at DESC LIMIT 10`,
       [user.id]
