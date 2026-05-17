@@ -10,6 +10,9 @@ console.log('🔌 Connecting to DB:', dbUrl.substring(0, 50) + '...');
 const pool = new Pool({
   connectionString: dbUrl,
   ssl: { rejectUnauthorized: false },
+  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 10000,
+  max: 5,
 });
 
 /**
