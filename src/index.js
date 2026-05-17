@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const { sendPushNotification } = require('./notifications');
+const { generateToken, requireAuth } = require('./auth');
 const { isPlanExpired, canUseDeliveryMode, canUseSmsForwarding, getLogDays, getPlan } = require('./plans');
 
 const {
@@ -44,6 +45,9 @@ app.use((req, res, next) => {
   console.log(`➡️  ${req.method} ${req.path} | body: ${JSON.stringify(req.body)} | query: ${JSON.stringify(req.query)}`);
   next();
 });
+
+// ─── AUTH MIDDLEWARE ───────────────────────────────────────────
+app.use(requireAuth);
 
 // ═══════════════════════════════════════════════════════════════
 //  EXOTEL WEBHOOKS  (Exotel calls these URLs automatically)
@@ -210,6 +214,40 @@ app.post('/webhook/sms', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 //  USER API  (your frontend/app calls these)
 // ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/auth/token
+ * Exchange phone number for JWT session token (called after Firebase OTP)
+ * Body: { realNumber, firebaseUid }
+ */
+app.post('/api/auth/token', async (req, res) => {
+  const { realNumber, firebaseUid } = req.body;
+  if (!realNumber) return res.status(400).json({ error: 'realNumber required' });
+  try {
+    let user = await getUserByRealNumber(normaliseNumber(realNumber));
+    // Auto-register if first time
+    if (!user) {
+      return res.status(404).json({ error: 'User not registered', code: 'NOT_REGISTERED' });
+    }
+    const token = generateToken(user.id, user.real_number);
+    const { isPlanExpired: planExpired, getPlan } = require('./plans');
+    const planDetails = getPlan(user.plan);
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        maskedNumber: user.masked_number,
+        plan: user.plan,
+        planName: planDetails.name,
+        active: user.active && !planExpired(user),
+        expiresAt: user.expires_at,
+      }
+    });
+  } catch (err) {
+    console.error('auth/token error:', err);
+    res.status(500).json({ error: 'Auth failed' });
+  }
+});
 
 /**
  * POST /api/register
