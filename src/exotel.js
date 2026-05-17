@@ -114,4 +114,19 @@ async function addToExotelAddressBook(phoneNumber, name = '') {
   }
 }
 
-module.exports = { sendSMS, connectCall, buildCallConnectXML, buildCallBlockXML, addToExotelAddressBook };
+/**
+ * Remove a contact from Exotel Address Book
+ */
+async function removeFromExotelAddressBook(phoneNumber) {
+  try {
+    const fmt = n => n.replace(/^\+91/, '0');
+    await axios.delete(
+      `https://${EXOTEL_API_KEY}:${EXOTEL_API_TOKEN}@${EXOTEL_SUBDOMAIN}/v1/Accounts/${EXOTEL_ACCOUNT_SID}/Contacts/${fmt(phoneNumber)}`
+    );
+    console.log(`✅ Removed ${phoneNumber} from Exotel Address Book`);
+  } catch (err) {
+    console.warn(`⚠️ Exotel address book remove failed for ${phoneNumber}:`, err.response?.data || err.message);
+  }
+}
+
+module.exports = { sendSMS, connectCall, buildCallConnectXML, buildCallBlockXML, addToExotelAddressBook, removeFromExotelAddressBook };

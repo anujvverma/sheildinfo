@@ -27,6 +27,7 @@ const {
   buildCallConnectXML,
   buildCallBlockXML,
   addToExotelAddressBook,
+  removeFromExotelAddressBook,
 } = require('./exotel');
 
 const app = express();
@@ -331,10 +332,13 @@ app.delete('/api/phonebook/remove', async (req, res) => {
     const user = await getUserByRealNumber(normaliseNumber(realNumber));
     if (!user) return res.status(404).json({ error: 'User not found' });
     const { pool } = require('./db');
+    const normalisedContact = normaliseNumber(contactNumber);
     await pool.query(
       'DELETE FROM phonebook WHERE user_id = $1 AND contact_number = $2',
-      [user.id, normaliseNumber(contactNumber)]
+      [user.id, normalisedContact]
     );
+    // Auto-remove from Exotel Address Book
+    removeFromExotelAddressBook(normalisedContact).catch(() => {});
     res.json({ message: `${contactNumber} removed from phonebook` });
   } catch (err) {
     res.status(500).json({ error: 'Failed to remove contact' });
