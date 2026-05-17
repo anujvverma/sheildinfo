@@ -315,6 +315,27 @@ app.post('/api/phonebook/bulk', async (req, res) => {
 });
 
 /**
+ * DELETE /api/phonebook/remove
+ * Remove a contact from phonebook
+ * Body: { realNumber, contactNumber }
+ */
+app.delete('/api/phonebook/remove', async (req, res) => {
+  const { realNumber, contactNumber } = req.body;
+  try {
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { pool } = require('./db');
+    await pool.query(
+      'DELETE FROM phonebook WHERE user_id = $1 AND contact_number = $2',
+      [user.id, normaliseNumber(contactNumber)]
+    );
+    res.json({ message: `${contactNumber} removed from phonebook` });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to remove contact' });
+  }
+});
+
+/**
  * GET /api/phonebook?realNumber=+91XXXXXXXXXX
  */
 app.get('/api/phonebook', async (req, res) => {
