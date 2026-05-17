@@ -411,7 +411,7 @@ app.get('/exotel/connect-params', async (req, res) => {
 });
 
 // Health check
-app.get('/health', (_, res) => res.json({ status: 'ok', app: 'ShieldNumber' }));
+app.get('/health', (_, res) => res.json({ status: 'ok', app: 'ShieldInfo' }));
 
 // ═══════════════════════════════════════════════════════════════
 //  HELPERS
@@ -439,7 +439,7 @@ const APP_URL = process.env.APP_URL || 'https://sheildinfo-production.up.railway
 initDB().then(() => {
   app.listen(PORT, () => {
     console.log(`
-🔒 ShieldNumber backend running on port ${PORT}
+🔒 ShieldInfo backend running on port ${PORT}
 
 Webhook URLs to configure in Exotel:
   Incoming Call : POST ${APP_URL}/webhook/call
