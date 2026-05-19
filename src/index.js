@@ -112,8 +112,7 @@ app.get('/webhook/call', async (req, res) => {
 
   } catch (err) {
     console.error('GET Webhook /call error:', err);
-    res.set('Content-Type', 'text/xml');
-    return res.send(buildCallBlockXML());
+    return res.sendStatus(403); // Block on any error — safety first
   }
 });
 
