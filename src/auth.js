@@ -24,7 +24,7 @@ function verifyToken(token) {
 }
 
 function requireAuth(req, res, next) {
-  const publicPaths = ['/webhook/', '/health', '/api/register', '/api/auth/', '/exotel/', '/api/admin/'];
+  const publicPaths = ['/webhook/', '/health', '/api/register', '/api/auth/', '/exotel/', '/api/admin/', '/debug/'];
   if (publicPaths.some(p => req.path.startsWith(p))) return next();
 
   const authHeader = req.headers['authorization'];
