@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F8F9FC"
+    android:padding="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Header -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🛡️ ShieldInfo"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#1A1A2E"
+            android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SIM Box Setup"
+            android:textSize="16sp"
+            android:textColor="#64748B"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Status card -->
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚙️ Not configured yet"
+            android:textSize="14sp"
+            android:textColor="#92400E"
+            android:background="#FEF3C7"
+            android:padding="12dp"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Backend URL -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Backend URL"
+            android:textSize="13sp"
+            android:textColor="#374151"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"/>
+
+        <EditText
+            android:id="@+id/etBackendUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="https://shieldnumber.up.railway.app"
+            android:inputType="textUri"
+            android:background="#FFFFFF"
+            android:padding="14dp"
+            android:textSize="14sp"
+            android:layout_marginBottom="20dp"/>
+
+        <!-- SIM Number -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Jio SIM Number (Masked Number)"
+            android:textSize="13sp"
+            android:textColor="#374151"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="This is the number users share with strangers"
+            android:textSize="12sp"
+            android:textColor="#94A3B8"
+            android:layout_marginBottom="6dp"/>
+
+        <EditText
+            android:id="@+id/etSimNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="+919876543210"
+            android:inputType="phone"
+            android:background="#FFFFFF"
+            android:padding="14dp"
+            android:textSize="14sp"
+            android:layout_marginBottom="20dp"/>
+
+        <!-- Secret Key -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SIM Secret (keep private)"
+            android:textSize="13sp"
+            android:textColor="#374151"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"/>
+
+        <EditText
+            android:id="@+id/etSimSecret"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="shieldinfo-sim-secret-2026"
+            android:inputType="textPassword"
+            android:background="#FFFFFF"
+            android:padding="14dp"
+            android:textSize="14sp"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Save button -->
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="Save &amp; Activate SIM Box"
+            android:backgroundTint="#3B4FD8"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- Test button -->
+        <Button
+            android:id="@+id/btnTestSms"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="Send Test SMS to Backend"
+            android:backgroundTint="#10B981"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- View log button -->
+        <Button
+            android:id="@+id/btnViewLog"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="View Forwarded SMS Log"
+            android:backgroundTint="#64748B"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Instructions -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="How it works"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#1A1A2E"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="#64748B"
+            android:lineSpacingMultiplier="1.5"
+            android:text="1. Insert Jio SIM in this phone\n2. This app listens for every incoming SMS\n3. When Blinkit/Ola sends OTP to this number → forwarded to your real phone instantly\n4. For calls → set call forwarding to your Exotel number (see Settings → Call → Forward All)\n5. Keep this phone plugged in and on WiFi"/>
+
+    </LinearLayout>
+</ScrollView>
