@@ -626,7 +626,7 @@ app.get('/health', (_, res) => res.json({ status: 'ok', app: 'ShieldInfo' }));
  * Use this in browser to diagnose why calls are being blocked.
  * e.g. https://yourapp.railway.app/debug/call-test?caller=+918980003138&masked=+919513886363
  */
-app.get('/debug/call-test', async (req, res) => {
+app.get('/webhook/debug', async (req, res) => {
   const caller = normaliseNumber(req.query.caller || '');
   const masked = normaliseNumber(req.query.masked || '');
 
