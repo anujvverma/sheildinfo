@@ -608,6 +608,116 @@ app.get('/api/sms-log', async (req, res) => {
 });
 
 /**
+ * GET /inbox
+ * Simple web-based SMS inbox — works on any browser, no app needed
+ */
+app.get('/inbox', (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShieldInfo — SMS Inbox</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #F5F7FF; min-height: 100vh; }
+    .header { background: linear-gradient(135deg, #0D1B5E, #3B4FD8);
+              padding: 20px 24px; color: white; }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header p  { font-size: 13px; opacity: 0.75; margin-top: 4px; }
+    .container { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
+    .login-card { background: white; border-radius: 16px; padding: 24px;
+                  box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 16px; }
+    .login-card h2 { font-size: 16px; margin-bottom: 16px; color: #1A1A2E; }
+    .row { display: flex; gap: 10px; }
+    input { flex: 1; padding: 12px 14px; border: 1.5px solid #E2E8F0;
+            border-radius: 10px; font-size: 15px; outline: none; }
+    input:focus { border-color: #3B4FD8; }
+    button { padding: 12px 20px; background: #3B4FD8; color: white; border: none;
+             border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    button:active { opacity: 0.85; }
+    .sms-list { display: flex; flex-direction: column; gap: 10px; }
+    .sms-card { background: white; border-radius: 14px; padding: 16px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .sms-from { font-size: 13px; font-weight: 600; color: #3B4FD8; margin-bottom: 6px; }
+    .sms-body { font-size: 15px; color: #1A1A2E; line-height: 1.5; word-break: break-word; }
+    .otp-box  { background: #EFF6FF; border-radius: 10px; padding: 12px 16px;
+                margin-top: 10px; text-align: center; }
+    .otp-code { font-size: 32px; font-weight: 800; color: #3B4FD8; letter-spacing: 6px; }
+    .otp-label{ font-size: 11px; color: #64748B; margin-top: 2px; }
+    .sms-time { font-size: 11px; color: #94A3B8; margin-top: 8px; }
+    .empty { text-align: center; color: #94A3B8; padding: 40px 20px; font-size: 14px; }
+    .error { color: #EF4444; font-size: 13px; margin-top: 8px; }
+    .refresh { float: right; background: none; border: 1.5px solid #3B4FD8;
+               color: #3B4FD8; padding: 6px 14px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🛡️ ShieldInfo</h1>
+    <p>SMS Inbox — forwarded messages</p>
+  </div>
+  <div class="container">
+    <div class="login-card">
+      <h2>Enter your real number to view SMS</h2>
+      <div class="row">
+        <input id="num" type="tel" placeholder="+919909944526" />
+        <button onclick="load()">View</button>
+      </div>
+      <div id="err" class="error"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span id="title" style="font-weight:700;font-size:15px;color:#1A1A2E"></span>
+      <button class="refresh" onclick="load()" id="refBtn" style="display:none">↻ Refresh</button>
+    </div>
+    <div id="list"></div>
+  </div>
+  <script>
+    function extractOtp(text) {
+      const m = text.match(/\\b(\\d{4,8})\\b/);
+      return m ? m[1] : null;
+    }
+    function timeAgo(ts) {
+      const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+      if (d < 60) return d + 's ago';
+      if (d < 3600) return Math.floor(d/60) + 'm ago';
+      if (d < 86400) return Math.floor(d/3600) + 'h ago';
+      return new Date(ts).toLocaleDateString();
+    }
+    async function load() {
+      const num = document.getElementById('num').value.trim();
+      if (!num) { document.getElementById('err').textContent = 'Enter your number'; return; }
+      document.getElementById('err').textContent = '';
+      document.getElementById('list').innerHTML = '<div class="empty">Loading...</div>';
+      try {
+        const r = await fetch('/api/sms-log?realNumber=' + encodeURIComponent(num));
+        const data = await r.json();
+        if (!r.ok) { document.getElementById('err').textContent = data.error || 'Not found'; document.getElementById('list').innerHTML=''; return; }
+        const msgs = data.smsLog || [];
+        document.getElementById('title').textContent = msgs.length + ' message' + (msgs.length!==1?'s':'');
+        document.getElementById('refBtn').style.display = 'block';
+        if (!msgs.length) { document.getElementById('list').innerHTML = '<div class="empty">No SMS received yet.<br>Send a message to your ShieldInfo number.</div>'; return; }
+        document.getElementById('list').innerHTML = msgs.map(m => {
+          const otp = extractOtp(m.message);
+          return \`<div class="sms-card">
+            <div class="sms-from">📩 From: \${m.from_number}</div>
+            <div class="sms-body">\${m.message}</div>
+            \${otp ? \`<div class="otp-box"><div class="otp-code">\${otp}</div><div class="otp-label">OTP detected</div></div>\` : ''}
+            <div class="sms-time">\${timeAgo(m.sent_at)}</div>
+          </div>\`;
+        }).join('');
+      } catch(e) { document.getElementById('err').textContent = 'Error: ' + e.message; }
+    }
+    // Auto-load if number is in URL
+    const urlNum = new URLSearchParams(location.search).get('n');
+    if (urlNum) { document.getElementById('num').value = urlNum; load(); }
+  </script>
+</body>
+</html>`);
+});
+
+/**
  * POST /api/admin/upgrade
  * Admin endpoint to manually upgrade a user's plan
  * Body: { realNumber, plan, days }
