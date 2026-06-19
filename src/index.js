@@ -35,6 +35,24 @@ const {
   removeFromExotelAddressBook,
 } = require('./exotel');
 
+const {
+  listOwnedNumbers,
+  configureWebhooks,
+  searchAvailableNumbers,
+  buyAndConfigureNumber,
+  sendSMS: plivoSendSMS,
+  buildCallForwardXML,
+  buildCallBlockXML: plivoBuildCallBlockXML,
+} = require('./plivo');
+
+const {
+  addNumberToPool,
+  assignNumberToUser,
+  releaseNumber,
+  getNumberPoolStats,
+  listNumberPool,
+} = require('./db');
+
 const app = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -271,16 +289,15 @@ app.post('/api/auth/token', async (req, res) => {
 
 /**
  * POST /api/register
- * Register a new user with a masked number
- * Body: { realNumber, maskedNumber }
- *
- * In production: add OTP verification before creating user
+ * Register a new user. Auto-assigns a Plivo number from the pool.
+ * Body: { realNumber, maskedNumber? }
+ * If maskedNumber is omitted, one is auto-assigned from the Plivo pool.
  */
 app.post('/api/register', async (req, res) => {
-  const { realNumber, maskedNumber } = req.body;
+  let { realNumber, maskedNumber } = req.body;
 
-  if (!realNumber || !maskedNumber) {
-    return res.status(400).json({ error: 'realNumber and maskedNumber required' });
+  if (!realNumber) {
+    return res.status(400).json({ error: 'realNumber required' });
   }
 
   try {
@@ -289,21 +306,44 @@ app.post('/api/register', async (req, res) => {
       return res.json({ user: existing, message: 'Already registered' });
     }
 
-    // New users get Pro trial for 15 days
-    const user = await createUser(
-      normaliseNumber(realNumber),
-      normaliseNumber(maskedNumber),
-      'pro',
-      15
-    );
+    // If no maskedNumber provided, create user first then assign from pool
+    const normReal = normaliseNumber(realNumber);
 
-    // Send welcome SMS (non-fatal — don't block registration if SMS fails)
-    sendSMS(
-      user.real_number,
-      maskedNumber,
-      `Welcome to ShieldNumber! Your masked number is: ${maskedNumber}. Share this with strangers - your real number stays private. Unknown callers will be blocked automatically.`
-    ).catch(err => console.warn('Welcome SMS failed (non-fatal):', err.message));
+    if (!maskedNumber) {
+      // Create user with a placeholder, then assign number
+      const tempUser = await createUser(normReal, `pending_${Date.now()}`, 'pro', 15);
+      const assignedNumber = await assignNumberToUser(tempUser.id);
 
+      if (!assignedNumber) {
+        console.log('⚠️  Number pool empty — no Plivo number available');
+        return res.status(503).json({
+          error: 'No numbers available right now. Please try again shortly.',
+          code: 'POOL_EMPTY'
+        });
+      }
+
+      // Update user with the real masked number
+      await require('./db').pool.query(
+        'UPDATE users SET masked_number = $1 WHERE id = $2',
+        [assignedNumber, tempUser.id]
+      );
+      tempUser.masked_number = assignedNumber;
+      maskedNumber = assignedNumber;
+
+      console.log(`✅ Assigned ${assignedNumber} to user ${tempUser.id} (${normReal})`);
+
+      // Welcome SMS via Plivo
+      plivoSendSMS(
+        assignedNumber,
+        normReal,
+        `Welcome to ShieldInfo! Your masked number is: ${assignedNumber}. Share this number — your real number stays private. Unknown callers are blocked automatically.`
+      ).catch(err => console.log('Welcome SMS failed (non-fatal):', err.message));
+
+      return res.json({ user: tempUser, message: 'Registered successfully', maskedNumber: assignedNumber });
+    }
+
+    // maskedNumber explicitly provided (legacy / admin flow)
+    const user = await createUser(normReal, normaliseNumber(maskedNumber), 'pro', 15);
     res.json({ user, message: 'Registered successfully' });
 
   } catch (err) {
@@ -604,6 +644,179 @@ app.get('/api/sms-log', async (req, res) => {
   } catch (err) {
     console.error('sms-log error:', err);
     res.status(500).json({ error: 'Failed to get SMS log' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  PLIVO WEBHOOKS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /webhook/plivo-sms
+ * Plivo calls this when an SMS arrives on any of our numbers.
+ * Body: { From, To, Text, Type, ... }
+ */
+app.post('/webhook/plivo-sms', async (req, res) => {
+  const from      = req.body.From  || req.body.from;
+  const to        = req.body.To    || req.body.to;
+  const text      = req.body.Text  || req.body.text || '';
+
+  console.log(`📩 Plivo SMS: from=${from} to=${to} text="${text.substring(0,50)}"`);
+
+  try {
+    const maskedNum = normaliseNumber(to);
+    const user = await getUserByMaskedNumber(maskedNum);
+    if (!user) {
+      console.log(`❌ Plivo SMS: no user for masked number ${maskedNum}`);
+      return res.status(200).send('OK'); // always 200 to Plivo
+    }
+
+    // Log the SMS
+    await logSMS(user.id, normaliseNumber(from), maskedNum, text, 'inbound');
+    console.log(`✅ Plivo SMS logged for user ${user.id}`);
+
+    // Push notification
+    const fcmToken = await getFcmToken(user.id);
+    if (fcmToken) {
+      await sendPushNotification(fcmToken, {
+        title: `SMS from ${from}`,
+        body: text.substring(0, 100),
+      });
+    } else {
+      console.log(`⚠️  No FCM token for user ${user.id} — skipping push`);
+    }
+
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('Plivo SMS webhook error:', err);
+    res.status(200).send('OK');
+  }
+});
+
+/**
+ * POST /webhook/plivo-call
+ * Plivo calls this when someone calls one of our numbers.
+ * We check phonebook and return XML to forward or block.
+ * Body: { From, To, CallUUID, Direction, ... }
+ */
+app.post('/webhook/plivo-call', async (req, res) => {
+  const from   = req.body.From || req.body.from;
+  const to     = req.body.To   || req.body.to;
+
+  console.log(`📞 Plivo call: from=${from} to=${to}`);
+  res.setHeader('Content-Type', 'application/xml');
+
+  try {
+    const maskedNum = normaliseNumber(to);
+    const user = await getUserByMaskedNumber(maskedNum);
+
+    if (!user) {
+      console.log(`❌ Plivo call: no user for ${maskedNum}`);
+      return res.send(plivoBuildCallBlockXML());
+    }
+
+    const callerNum = normaliseNumber(from);
+    const inBook    = await isInPhonebook(user.id, callerNum);
+    const inTemp    = await isInTempWhitelist(user.id, callerNum);
+    const openUntil = await isDeliveryModeActive(user.id);
+
+    if (inBook || inTemp || openUntil) {
+      console.log(`✅ Plivo call ALLOWED: caller=${callerNum} user=${user.id}`);
+      await logCall(user.id, callerNum, maskedNum, 'allowed', inBook ? 'phonebook' : inTemp ? 'temp_whitelist' : 'delivery_mode');
+
+      // Push notification
+      const fcmToken = await getFcmToken(user.id);
+      if (fcmToken) {
+        await sendPushNotification(fcmToken, {
+          title: `📞 Incoming call from ${callerNum}`,
+          body: 'Tap to answer',
+        });
+      }
+
+      return res.send(buildCallForwardXML(user.real_number, maskedNum));
+    } else {
+      console.log(`🚫 Plivo call BLOCKED: caller=${callerNum} user=${user.id}`);
+      await logCall(user.id, callerNum, maskedNum, 'blocked', 'unknown');
+      return res.send(plivoBuildCallBlockXML());
+    }
+  } catch (err) {
+    console.error('Plivo call webhook error:', err);
+    return res.send(plivoBuildCallBlockXML());
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  PLIVO NUMBER POOL MANAGEMENT  (admin)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/admin/plivo/numbers
+ * List all owned Plivo numbers + pool status
+ */
+app.get('/api/admin/plivo/numbers', async (req, res) => {
+  try {
+    const [owned, pool, stats] = await Promise.all([
+      listOwnedNumbers(),
+      listNumberPool(),
+      getNumberPoolStats(),
+    ]);
+    res.json({ owned, pool, stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/plivo/add-number
+ * Add an already-owned Plivo number to the pool.
+ * Body: { number } e.g. "+919XXXXXXXXX"
+ * Also configures webhooks on it.
+ */
+app.post('/api/admin/plivo/add-number', async (req, res) => {
+  const { number } = req.body;
+  if (!number) return res.status(400).json({ error: 'number required' });
+  try {
+    await configureWebhooks(number);
+    await addNumberToPool(number, 'plivo');
+    res.json({ success: true, number, message: 'Number added to pool and webhooks configured' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/plivo/buy-number
+ * Search for and buy a new Indian number, then add to pool.
+ * Body: { number } — optional, if omitted we pick the first available
+ */
+app.post('/api/admin/plivo/buy-number', async (req, res) => {
+  try {
+    let { number } = req.body;
+    if (!number) {
+      const available = await searchAvailableNumbers('IN', 1);
+      if (!available.length) return res.status(404).json({ error: 'No numbers available to buy' });
+      number = available[0].number;
+    }
+    await buyAndConfigureNumber(number);
+    await addNumberToPool(number, 'plivo');
+    res.json({ success: true, number, message: 'Number purchased, webhooks set, added to pool' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/plivo/search
+ * Search available Indian numbers to buy.
+ * Query: ?limit=5
+ */
+app.get('/api/admin/plivo/search', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 5;
+  try {
+    const numbers = await searchAvailableNumbers('IN', limit);
+    res.json({ numbers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

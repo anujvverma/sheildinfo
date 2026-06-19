@@ -112,6 +112,17 @@ async function initDB() {
       status VARCHAR(20) DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT NOW()
     );
+
+    -- Virtual number pool (Plivo numbers)
+    CREATE TABLE IF NOT EXISTS virtual_numbers (
+      id SERIAL PRIMARY KEY,
+      number VARCHAR(15) UNIQUE NOT NULL,        -- e.g. +919XXXXXXXXXX
+      provider VARCHAR(20) DEFAULT 'plivo',      -- plivo | exotel
+      status VARCHAR(20) DEFAULT 'available',    -- available | assigned | suspended
+      assigned_to INT REFERENCES users(id) ON DELETE SET NULL,
+      assigned_at TIMESTAMP,
+      added_at TIMESTAMP DEFAULT NOW()
+    );
   `);
   console.log('✅ Database tables ready');
 }
@@ -287,10 +298,80 @@ async function getFcmToken(userId) {
   return res.rows[0]?.token || null;
 }
 
+// ─── VIRTUAL NUMBER POOL ──────────────────────────────
+
+/**
+ * Add a Plivo number to the pool (call after buying it).
+ */
+async function addNumberToPool(number, provider = 'plivo') {
+  await query(
+    `INSERT INTO virtual_numbers (number, provider)
+     VALUES ($1, $2) ON CONFLICT (number) DO NOTHING`,
+    [number, provider]
+  );
+}
+
+/**
+ * Pick the next available number from the pool and assign it to a user.
+ * Returns the assigned number string, or null if pool is empty.
+ */
+async function assignNumberToUser(userId) {
+  const res = await query(
+    `UPDATE virtual_numbers
+     SET status = 'assigned', assigned_to = $1, assigned_at = NOW()
+     WHERE id = (
+       SELECT id FROM virtual_numbers
+       WHERE status = 'available'
+       ORDER BY added_at ASC
+       LIMIT 1
+     )
+     RETURNING number`,
+    [userId]
+  );
+  return res.rows[0]?.number || null;
+}
+
+/**
+ * Release a user's number back to the pool.
+ */
+async function releaseNumber(userId) {
+  await query(
+    `UPDATE virtual_numbers
+     SET status = 'available', assigned_to = NULL, assigned_at = NULL
+     WHERE assigned_to = $1`,
+    [userId]
+  );
+}
+
+/**
+ * Get pool stats.
+ */
+async function getNumberPoolStats() {
+  const res = await query(
+    `SELECT status, COUNT(*) as count FROM virtual_numbers GROUP BY status`
+  );
+  return res.rows;
+}
+
+/**
+ * List all numbers in pool.
+ */
+async function listNumberPool() {
+  const res = await query(
+    `SELECT vn.*, u.real_number as user_real_number
+     FROM virtual_numbers vn
+     LEFT JOIN users u ON vn.assigned_to = u.id
+     ORDER BY vn.added_at DESC`
+  );
+  return res.rows;
+}
+
 module.exports = {
   initDB, pool,
   getUserByMaskedNumber, getUserByRealNumber, createUser,
   isInPhonebook, addToPhonebook, getPhonebook, bulkAddPhonebook,
   isInTempWhitelist, addTempWhitelist, getTempWhitelist,
-  logCall, logSMS, getCallLog, getSMSLog, saveFcmToken, getFcmToken, enableDeliveryMode, disableDeliveryMode, isDeliveryModeActive,
+  logCall, logSMS, getCallLog, getSMSLog, saveFcmToken, getFcmToken,
+  enableDeliveryMode, disableDeliveryMode, isDeliveryModeActive,
+  addNumberToPool, assignNumberToUser, releaseNumber, getNumberPoolStats, listNumberPool,
 };
