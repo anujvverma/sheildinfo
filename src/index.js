@@ -591,6 +591,23 @@ app.post('/api/fcm-token', async (req, res) => {
 });
 
 /**
+ * GET /api/sms-log
+ * Returns forwarded SMS messages for the authenticated user (used by Flutter SMS Inbox screen)
+ */
+app.get('/api/sms-log', async (req, res) => {
+  const realNumber = req.query.realNumber || req.user?.realNumber;
+  try {
+    const user = await getUserByRealNumber(normaliseNumber(realNumber));
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const smsLog = await getSMSLog(user.id, 50);
+    res.json({ smsLog });
+  } catch (err) {
+    console.error('sms-log error:', err);
+    res.status(500).json({ error: 'Failed to get SMS log' });
+  }
+});
+
+/**
  * POST /api/admin/upgrade
  * Admin endpoint to manually upgrade a user's plan
  * Body: { realNumber, plan, days }
@@ -682,9 +699,11 @@ app.get('/webhook/debug', async (req, res) => {
 const SIM_SECRET = process.env.SIM_SECRET || 'shieldinfo-sim-secret-2026';
 
 function verifySIMSecret(req, res) {
-  const secret = req.headers['x-sim-secret'];
-  if (secret !== SIM_SECRET) {
-    console.warn('⚠️  SIM Box: invalid secret from', req.ip);
+  const secret = (req.headers['x-sim-secret'] || '').trim();
+  const expected = SIM_SECRET.trim();
+  console.log(`🔑 SIM secret check: received="${secret}" expected="${expected}" match=${secret === expected}`);
+  if (secret !== expected) {
+    console.log(`❌ SIM Box: invalid secret from ${req.ip}`);
     res.status(403).json({ error: 'Unauthorized' });
     return false;
   }
@@ -737,6 +756,75 @@ app.post('/webhook/sms-inbound', async (req, res) => {
   } catch (err) {
     console.error('SMS inbound error:', err);
     res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+/**
+ * GET /webhook/simbox-phonebook?simNumber=+91XXXXXXXXXX
+ * Called by Android app every 5 min to sync phonebook locally.
+ * Returns all allowed contacts + delivery mode status for this user.
+ */
+app.get('/webhook/simbox-phonebook', async (req, res) => {
+  if (!verifySIMSecret(req, res)) return;
+  const simNumber = normaliseNumber(req.query.simNumber || '');
+  if (!simNumber) return res.status(400).json({ error: 'Missing simNumber' });
+
+  try {
+    const user = await getUserByMaskedNumber(simNumber);
+    if (!user) return res.status(404).json({ error: 'No user for this SIM' });
+
+    const phonebook = await getPhonebook(user.id);
+    const deliveryUntil = await isDeliveryModeActive(user.id);
+
+    res.json({
+      contacts: phonebook.map(c => ({
+        number: c.contact_number,
+        name:   c.contact_name || ''
+      })),
+      deliveryModeUntil: deliveryUntil
+        ? new Date(deliveryUntil).getTime()
+        : 0
+    });
+  } catch (err) {
+    console.error('simbox-phonebook error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /webhook/simbox-call-log
+ * Called by Android app after every call (allowed or blocked).
+ * Logs to DB and push-notifies user if blocked.
+ */
+app.post('/webhook/simbox-call-log', async (req, res) => {
+  if (!verifySIMSecret(req, res)) return;
+  const { callerNumber, simNumber, action, reason } = req.body;
+
+  try {
+    const maskedNum = normaliseNumber(simNumber);
+    const caller    = normaliseNumber(callerNumber);
+    const user = await getUserByMaskedNumber(maskedNum);
+    if (!user) return res.status(404).json({ error: 'No user for this SIM' });
+
+    await logCall(user.id, caller, maskedNum, action, reason);
+
+    // Push notification for blocked calls
+    if (action === 'blocked') {
+      const fcmToken = await getFcmToken(user.id).catch(() => null);
+      if (fcmToken) {
+        sendPushNotification(
+          fcmToken,
+          'Call Blocked 🛡️',
+          `Unknown caller ${caller} was blocked`,
+          { type: 'blocked_call', callerNumber: caller }
+        ).catch(() => {});
+      }
+    }
+
+    res.json({ logged: true });
+  } catch (err) {
+    console.error('simbox-call-log error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

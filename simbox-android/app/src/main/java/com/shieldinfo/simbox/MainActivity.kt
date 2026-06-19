@@ -59,8 +59,10 @@ class MainActivity : AppCompatActivity() {
             etSimNumber.setText(Config.simNumber)
             setStatus("✅ Configured — SIM Box is active", green = true)
         } else {
+            etBackendUrl.setText("https://sheildinfo-production.up.railway.app")
             etSimSecret.setText("shieldinfo-sim-secret-2026")
-            tryAutoDetectSimNumber()
+            etSimNumber.setText("+916356564558")
+            tryAutoDetectSimNumber() // overrides with real SIM number if detectable
         }
 
         btnSave.setOnClickListener { saveAndStart() }
@@ -68,6 +70,9 @@ class MainActivity : AppCompatActivity() {
         btnViewLog.setOnClickListener {
             startActivity(Intent(this, SmsLogActivity::class.java))
         }
+
+        // Show call screening setup status
+        checkCallScreeningStatus()
 
         checkAndRequestPermissions()
     }
@@ -115,6 +120,40 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }.start()
+    }
+
+    private fun checkCallScreeningStatus() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) return
+        val telecom = getSystemService(android.telecom.TelecomManager::class.java)
+        val pkg = telecom?.defaultDialerPackage ?: ""
+        // Check if we are set as call screening app
+        // We show a prompt to guide user if not yet set
+        val infoText = findViewById<TextView>(R.id.tvCallScreeningInfo)
+        if (pkg == packageName) {
+            infoText?.text = "✅ Call screening active — unknown callers will be blocked"
+            infoText?.setTextColor(getColor(android.R.color.holo_green_dark))
+        } else {
+            infoText?.text = "⚠️ Tap here to enable Call Blocking"
+            infoText?.setTextColor(getColor(android.R.color.holo_orange_dark))
+            infoText?.setOnClickListener { openCallScreeningSettings() }
+        }
+    }
+
+    private fun openCallScreeningSettings() {
+        // Guide user to Phone app settings to set ShieldInfo as screening app
+        try {
+            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = android.net.Uri.parse("package:$packageName")
+            }
+            startActivity(intent)
+            Toast.makeText(this,
+                "Go to 'Phone' settings and set ShieldInfo as Caller ID & Spam app",
+                Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this,
+                "Go to Phone Settings → Caller ID & Spam → choose ShieldInfo SIM Box",
+                Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun tryAutoDetectSimNumber() {

@@ -1,0 +1,211 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.shieldinfo.simbox"
+4    android:versionCode="1"
+5    android:versionName="1.0.0-poc" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="34" />
+10
+11    <!-- SMS permissions -->
+12    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+12-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:6:5-69
+12-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:6:22-67
+13    <uses-permission android:name="android.permission.READ_SMS" />
+13-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:7:5-66
+13-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:7:22-64
+14
+15    <!-- Call permissions -->
+16    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+16-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:10:5-74
+16-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:10:22-72
+17    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+17-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:11:5-71
+17-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:11:22-69
+18    <uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" />
+18-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:12:5-80
+18-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:12:22-78
+19
+20    <!-- Network -->
+21    <uses-permission android:name="android.permission.INTERNET" />
+21-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:15:5-66
+21-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:15:22-64
+22    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+22-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:16:5-78
+22-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:16:22-76
+23
+24    <!-- Keep app alive -->
+25    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+25-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:19:5-76
+25-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:19:22-74
+26    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+26-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:20:5-86
+26-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:20:22-84
+27    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+27-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:21:5-80
+27-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:21:22-78
+28    <uses-permission android:name="android.permission.WAKE_LOCK" />
+28-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:22:5-67
+28-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:22:22-65
+29    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+29-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:23:5-76
+29-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:23:22-74
+30
+31    <permission
+31-->[androidx.core:core:1.12.0] /Users/anujverma/.gradle/caches/transforms-3/8775ed491970576126584cf24be3fe11/transformed/core-1.12.0/AndroidManifest.xml:22:5-24:47
+32        android:name="com.shieldinfo.simbox.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+32-->[androidx.core:core:1.12.0] /Users/anujverma/.gradle/caches/transforms-3/8775ed491970576126584cf24be3fe11/transformed/core-1.12.0/AndroidManifest.xml:23:9-81
+33        android:protectionLevel="signature" />
+33-->[androidx.core:core:1.12.0] /Users/anujverma/.gradle/caches/transforms-3/8775ed491970576126584cf24be3fe11/transformed/core-1.12.0/AndroidManifest.xml:24:9-44
+34
+35    <uses-permission android:name="com.shieldinfo.simbox.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+35-->[androidx.core:core:1.12.0] /Users/anujverma/.gradle/caches/transforms-3/8775ed491970576126584cf24be3fe11/transformed/core-1.12.0/AndroidManifest.xml:26:5-97
+35-->[androidx.core:core:1.12.0] /Users/anujverma/.gradle/caches/transforms-3/8775ed491970576126584cf24be3fe11/transformed/core-1.12.0/AndroidManifest.xml:26:22-94
+36
+37    <application
+37-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:25:5-92:19
+38        android:allowBackup="true"
+38-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:26:9-35
+39        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+39-->[androidx.core:core:1.12.0] /Users/anujverma/.gradle/caches/transforms-3/8775ed491970576126584cf24be3fe11/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
+40        android:debuggable="true"
+41        android:extractNativeLibs="false"
+42        android:icon="@mipmap/ic_launcher"
+42-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:27:9-43
+43        android:label="ShieldInfo SIM Box"
+43-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:28:9-43
+44        android:roundIcon="@mipmap/ic_launcher_round"
+44-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:29:9-54
+45        android:supportsRtl="true"
+45-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:30:9-35
+46        android:theme="@style/Theme.AppCompat.Light.NoActionBar" >
+46-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:31:9-65
+47
+48        <!-- Main setup screen -->
+49        <activity
+49-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:34:9-41:20
+50            android:name="com.shieldinfo.simbox.MainActivity"
+50-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:35:13-41
+51            android:exported="true" >
+51-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:36:13-36
+52            <intent-filter>
+52-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:37:13-40:29
+53                <action android:name="android.intent.action.MAIN" />
+53-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:38:17-68
+53-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:38:25-66
+54
+55                <category android:name="android.intent.category.LAUNCHER" />
+55-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:39:17-76
+55-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:39:27-74
+56            </intent-filter>
+57        </activity>
+58
+59        <!-- SMS BroadcastReceiver — highest priority -->
+60        <receiver
+60-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:44:9-50:20
+61            android:name="com.shieldinfo.simbox.SmsReceiver"
+61-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:45:13-40
+62            android:exported="true" >
+62-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:46:13-36
+63            <intent-filter android:priority="2147483647" >
+63-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:47:13-49:29
+63-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:47:28-57
+64                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+64-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:48:17-81
+64-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:48:25-79
+65            </intent-filter>
+66        </receiver>
+67
+68        <!-- Call receiver for Android 8-9 fallback -->
+69        <receiver
+69-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:53:9-59:20
+70            android:name="com.shieldinfo.simbox.CallReceiver"
+70-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:54:13-41
+71            android:exported="false" >
+71-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:55:13-37
+72            <intent-filter android:priority="999" >
+72-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:56:13-58:29
+72-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:56:28-50
+73                <action android:name="android.intent.action.PHONE_STATE" />
+73-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:57:17-75
+73-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:57:25-73
+74            </intent-filter>
+75        </receiver>
+76
+77        <!-- Call Screening Service for Android 10+ (the proper way) -->
+78        <service
+78-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:62:9-69:19
+79            android:name="com.shieldinfo.simbox.ShieldCallScreeningService"
+79-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:63:13-55
+80            android:exported="true"
+80-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:64:13-36
+81            android:permission="android.permission.BIND_SCREENING_SERVICE" >
+81-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:65:13-75
+82            <intent-filter>
+82-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:66:13-68:29
+83                <action android:name="android.telecom.CallScreeningService" />
+83-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:67:17-78
+83-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:67:25-76
+84            </intent-filter>
+85        </service>
+86
+87        <!-- Auto-start on device reboot -->
+88        <receiver
+88-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:72:9-78:20
+89            android:name="com.shieldinfo.simbox.BootReceiver"
+89-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:73:13-41
+90            android:exported="true" >
+90-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:74:13-36
+91            <intent-filter>
+91-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:75:13-77:29
+92                <action android:name="android.intent.action.BOOT_COMPLETED" />
+92-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:76:17-78
+92-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:76:25-76
+93            </intent-filter>
+94        </receiver>
+95
+96        <!-- SMS log screen -->
+97        <activity
+97-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:81:9-84:38
+98            android:name="com.shieldinfo.simbox.SmsLogActivity"
+98-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:82:13-43
+99            android:exported="false"
+99-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:83:13-37
+100            android:label="SMS Log" />
+100-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:84:13-36
+101
+102        <!-- Foreground service to keep app alive -->
+103        <service
+103-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:87:9-90:55
+104            android:name="com.shieldinfo.simbox.WatchdogService"
+104-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:88:13-44
+105            android:exported="false"
+105-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:89:13-37
+106            android:foregroundServiceType="dataSync" />
+106-->/Users/anujverma/Downloads/shieldnumber-backend/simbox-android/app/src/main/AndroidManifest.xml:90:13-53
+107
+108        <provider
+108-->[androidx.emoji2:emoji2:1.2.0] /Users/anujverma/.gradle/caches/transforms-3/fab8b75b7e9679982a94051180e1a35f/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:24:9-32:20
+109            android:name="androidx.startup.InitializationProvider"
+109-->[androidx.emoji2:emoji2:1.2.0] /Users/anujverma/.gradle/caches/transforms-3/fab8b75b7e9679982a94051180e1a35f/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:25:13-67
+110            android:authorities="com.shieldinfo.simbox.androidx-startup"
+110-->[androidx.emoji2:emoji2:1.2.0] /Users/anujverma/.gradle/caches/transforms-3/fab8b75b7e9679982a94051180e1a35f/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:26:13-68
+111            android:exported="false" >
+111-->[androidx.emoji2:emoji2:1.2.0] /Users/anujverma/.gradle/caches/transforms-3/fab8b75b7e9679982a94051180e1a35f/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:27:13-37
+112            <meta-data
+112-->[androidx.emoji2:emoji2:1.2.0] /Users/anujverma/.gradle/caches/transforms-3/fab8b75b7e9679982a94051180e1a35f/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:29:13-31:52
+113                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+113-->[androidx.emoji2:emoji2:1.2.0] /Users/anujverma/.gradle/caches/transforms-3/fab8b75b7e9679982a94051180e1a35f/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:30:17-75
+114                android:value="androidx.startup" />
+114-->[androidx.emoji2:emoji2:1.2.0] /Users/anujverma/.gradle/caches/transforms-3/fab8b75b7e9679982a94051180e1a35f/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:31:17-49
+115            <meta-data
+115-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/anujverma/.gradle/caches/transforms-3/57511ff2d720ed9fbde6c9dd4e8889d3/transformed/jetified-lifecycle-process-2.4.1/AndroidManifest.xml:31:13-33:52
+116                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+116-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/anujverma/.gradle/caches/transforms-3/57511ff2d720ed9fbde6c9dd4e8889d3/transformed/jetified-lifecycle-process-2.4.1/AndroidManifest.xml:32:17-78
+117                android:value="androidx.startup" />
+117-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/anujverma/.gradle/caches/transforms-3/57511ff2d720ed9fbde6c9dd4e8889d3/transformed/jetified-lifecycle-process-2.4.1/AndroidManifest.xml:33:17-49
+118        </provider>
+119    </application>
+120
+121</manifest>

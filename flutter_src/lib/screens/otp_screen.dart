@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api_service.dart';
 import 'dashboard_screen.dart';
@@ -93,6 +94,20 @@ class _OtpScreenState extends State<OtpScreen> {
       }
       await prefs.setString('maskedNumber', maskedNum);
       debugPrint('JWT token obtained, masked: $maskedNum');
+
+      // Register FCM token for push notifications
+      try {
+        await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
+        final fcmToken = await FirebaseMessaging.instance.getToken(
+          vapidKey: const String.fromEnvironment('FCM_VAPID_KEY', defaultValue: ''),
+        );
+        if (fcmToken != null && fcmToken.isNotEmpty) {
+          await ApiService.saveFcmToken(widget.phoneNumber, fcmToken);
+          debugPrint('✅ FCM token registered');
+        }
+      } catch (e) {
+        debugPrint('FCM token registration skipped: $e');
+      }
 
       // First time? → show contact sync. Returning? → go to dashboard
       final isFirstSync = !(prefs.getBool('contacts_synced') ?? false);

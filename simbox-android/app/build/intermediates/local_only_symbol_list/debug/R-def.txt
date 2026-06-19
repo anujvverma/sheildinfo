@@ -1,0 +1,20 @@
+R_DEF: Internal format may change without notice
+local
+color colorAccent
+color colorPrimary
+color colorPrimaryDark
+color ic_launcher_background
+drawable ic_launcher
+id btnSave
+id btnTestSms
+id btnViewLog
+id etBackendUrl
+id etSimNumber
+id etSimSecret
+id tvCallScreeningInfo
+id tvStatus
+layout activity_main
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+style Theme.AppCompat.Light.NoActionBar
