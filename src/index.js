@@ -731,9 +731,10 @@ app.post('/webhook/sms-inbound', async (req, res) => {
     const user = await getUserByMaskedNumber(maskedNum);
 
     if (!user) {
-      console.warn(`📩 SMS arrived for unknown SIM: ${maskedNum}`);
+      console.log(`❌ No user found for masked number: "${maskedNum}" (length=${maskedNum.length})`);
       return res.status(404).json({ error: 'No user for this SIM' });
     }
+    console.log(`✅ User found: id=${user.id} for masked=${maskedNum}`);
 
     // Log the SMS
     await logSMS(user.id, normaliseNumber(from), maskedNum, smsBody, 'inbound');
@@ -749,7 +750,7 @@ app.post('/webhook/sms-inbound', async (req, res) => {
       );
       console.log(`✅ SMS forwarded: ${from} → user ${user.id} via push`);
     } else {
-      console.warn(`⚠️  No FCM token for user ${user.id} — SMS received but not forwarded`);
+      console.log(`⚠️  No FCM token for user ${user.id} — SMS received but not forwarded`);
     }
 
     res.json({ forwarded: !!fcmToken, userId: user.id });
